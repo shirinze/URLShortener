@@ -3,10 +3,10 @@ using URLShortener.Models;
 
 namespace URLShortener;
 
-public class URLShortenereDbContext
+public class URLShortenerDbContext
 {
     public IMongoCollection<ShortURL> ShortURLs { get;}
-    public URLShortenereDbContext(IConfiguration configuration)
+    public URLShortenerDbContext(IConfiguration configuration)
     {
         var client = new MongoClient(configuration.GetConnectionString("MongoDb"));
         var database = client.GetDatabase(configuration["DatabaseSettings:DatabaseName"]);
