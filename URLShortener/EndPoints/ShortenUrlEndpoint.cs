@@ -6,17 +6,18 @@ namespace URLShortener.EndPoints;
 
 public class ShortenUrlRequest
 {
-    public string OriginalUrl { get; set; } = default!;
+    public string OriginalURL { get; set; } = default!;
 }
-
 public class ShortenUrlResponse
 {
     public string ShortURL { get; set; } = default!;
 }
 
-public class ShortenUrlEndpoint(URLShortenerDbContext db,
-    IHttpContextAccessor httpContextAccessor)
-    :Endpoint<ShortenUrlRequest,ShortenUrlResponse>
+public class ShortenUrlEndpoint
+    (
+    URLShortenerDbContext db,
+    IHttpContextAccessor httpContextAccessor
+    ):Endpoint<ShortenUrlRequest,ShortenUrlResponse>
 {
     private readonly IMongoCollection<ShortURL> collection = db.ShortURLs;
     public override void Configure()
@@ -24,21 +25,22 @@ public class ShortenUrlEndpoint(URLShortenerDbContext db,
         Post("/shorten");
         AllowAnonymous();
     }
-    public async override Task HandleAsync(ShortenUrlRequest req, CancellationToken ct)
+
+    public override async Task HandleAsync(ShortenUrlRequest req, CancellationToken ct)
     {
-        var code = await CreateAsync(req.OriginalUrl, ct);
+        var code = await CreateAsync(req.OriginalURL, ct);
 
         var scheme = httpContextAccessor.HttpContext?.Request.Scheme;
         var host = httpContextAccessor.HttpContext?.Request.Host.Value;
         var result = $"{scheme}://{host}/{code}";
 
-        await SendAsync(new ShortenUrlResponse { ShortURL = result }, StatusCodes.Status200OK, ct);
+        await SendAsync(new ShortenUrlResponse { ShortURL = result }, StatusCodes.Status200OK,ct);
     }
 
-    public async Task<string> CreateAsync(string originalURL, CancellationToken ct)
+    private async Task<string> CreateAsync(string originalURL, CancellationToken ct)
     {
         var code = GenerateCode();
-        var shortURL = new ShortURL { Code = code, OriginalUrl = originalURL };
+        var shortUrl = new ShortURL { Code = code, OriginalUrl = originalURL };
 
         var options = new InsertOneOptions
         {
@@ -46,7 +48,7 @@ public class ShortenUrlEndpoint(URLShortenerDbContext db,
         };
         try
         {
-            await collection.InsertOneAsync(shortURL, options, ct);
+            await collection.InsertOneAsync(shortUrl, options, ct);
         }
         catch (MongoWriteException)
         {
@@ -55,15 +57,13 @@ public class ShortenUrlEndpoint(URLShortenerDbContext db,
 
         return code;
     }
-
     private static string GenerateCode(int length=3)
     {
         const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        var resultchars = Enumerable
+        var resultChar = Enumerable
             .Repeat(chars, length)
             .Select(s => s[Random.Shared.Next(chars.Length)])
             .ToArray();
-
-        return new string(resultchars);
+        return new string(resultChar);
     }
 }
